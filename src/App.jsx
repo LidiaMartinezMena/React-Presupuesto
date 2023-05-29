@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Header from './components/Header'
+import Filtros from './components/Filtros'
 import Modal from './components/Modal'
 import ListadoGastos from './components/ListadoGastos'
 import { generarId } from './helpers'
@@ -9,8 +10,12 @@ import IconoNuevoGasto from './img/nuevo-gasto.svg'
 
 
 function App() {
- 
-  const[presupuesto, setPresupuesto] = useState(0);
+ //Buscar primer en local storage si tenemos guardado un presupuesto
+  const[presupuesto, setPresupuesto] = useState(
+    Number(localStorage.getItem('presupuesto')) ?? 0
+  );
+
+
   const[isValidPresupuesto, setIsValidPresupuesto] = useState(false);
 
   //Registrar una ventana modal:
@@ -18,10 +23,17 @@ function App() {
   const[animarModal, setAnimarModal] = useState(false);
 
   //Pasar el objeto gasto desde el compuesto: Modal.JSX al APP.JSX
-  const [gastos, setGastos] = useState([]);
+  const [gastos, setGastos] = useState(
+    localStorage.getItem('gastos') ? JSON.parse(localStorage.getItem('gastos')) : []);
+  
 
   //Identificar y guardar el gasto que pulsamos en editar. Se guarda un objeto
   const [gastoEditar, setGastoEditar] = useState({});
+
+  //Definir un nuevo State para los filtros
+  const [filtro, setFiltro] = useState('');
+  const [gastosFiltrados, setGastosFiltrados] = useState([]);
+
 
   useEffect(() => {
     if(Object.keys(gastoEditar).length > 0){
@@ -31,6 +43,34 @@ function App() {
         },500);
     }
   },[gastoEditar])
+
+  //Almacenar los datos en Local Storage, va a ejecutarse cuando "presupuesto" cambie
+  useEffect(() => {
+    localStorage.setItem('presupuesto', presupuesto ?? 0);
+  },[presupuesto])
+
+//Almacenar los datos en Local Storage, va a ejecutarse cuando "gastos" cambie
+  useEffect(() => {
+    localStorage.setItem('gastos', JSON.stringify(gastos) ?? []);
+  },[gastos])
+
+// Actúa cuando cambia filtro:
+useEffect (() => {
+  if(filtro){
+      //Filtrar los gatos por categoría
+      const gastosFiltrados = gastos.filter( gasto => gasto.categoria === filtro)
+
+      setGastosFiltrados(gastosFiltrados)
+  }
+},[filtro])
+
+  useEffect(() => {
+    const presupuestoLS = Number(localStorage.getItem('presupuesto')) ?? 0;
+
+    if(presupuestoLS > 0 ){
+        setIsValidPresupuesto(true)
+    }
+  },[])
 
   //Añadir la función del botón de Nuevo Gasto
   const handleNuevoGasto = () => {
@@ -72,6 +112,7 @@ function App() {
     <div className={modal ? 'fijar' : ''}>
       <Header 
       gastos={gastos}
+      setGastos={setGastos}
       presupuesto={presupuesto}
       setPresupuesto={setPresupuesto}
       isValidPresupuesto={isValidPresupuesto}
@@ -81,10 +122,16 @@ function App() {
       {isValidPresupuesto ? (
         <>
           <main>
+          <Filtros 
+                filtro={filtro}
+                setFiltro={setFiltro}
+              />
             <ListadoGastos 
               setGastoEditar={setGastoEditar}
               gastos={gastos}
               eliminarGasto={eliminarGasto}
+              gastosFiltrados={gastosFiltrados}
+              filtro={filtro}
             />
           </main>
           <div className='nuevo-gasto'>
